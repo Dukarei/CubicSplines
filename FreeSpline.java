@@ -1,4 +1,4 @@
-
+import java.util.*;
 import java.util.Random;
 import java.util.function.*;
 import javafx.application.Application;
@@ -19,14 +19,16 @@ public class FreeSpline extends Application{
 //    	double[] y = {-2.4,0.2,2,-0.5,-2.6,0.3,3.5,-1.2,2.4};
 //		double[] x = {0,1,2,3,4,5};
 //		double[] y = {0, 0.05, 0.4, 1.35,3.2,6};
-		double[] x = {0,0.4,1,1.4,2,2.4,3,3.4,4};
-		double[] y = {-2.4,0.2,2,-0.5,-2.6,0.3,3.5,-1.2,2.4};
-		/*
-		 * playing around with this has interesting results, although not very spline-ey
-		double[][] arr = genInputs(20, 100);
+//		double[] x = {0,0.4,1,1.4,2,2.4,3,3.4,4};
+//		double[] y = {-2.4,0.2,2,-0.5,-2.6,0.3,3.5,-1.2,2.4};
+		//playing around with this has interesting results, although not very spline-ey
+		//double[][] arr = genInputs(50, 50);
+		//double[][] arr = genInputsFunc(10, 50, a->1/a);
+		//double[][] arr = genInputsFunc(10, 50, a->Math.pow(a,2));
+		//need more inputs than the bound to accurately sample trig funcs
+		double[][] arr = genInputsFunc(20, 10, a->Math.sin(a));
 		double[] x = arr[0];
 		double[] y = arr[1];
-		*/
 		GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
 		int cWidth = gd.getDisplayMode().getWidth();
 		int cHeight = gd.getDisplayMode().getHeight();
@@ -68,12 +70,52 @@ public class FreeSpline extends Application{
 		DoubleUnaryOperator interp = a->(1-a)*p0 + a*p1;
 		return interp.applyAsDouble(ratio);
 	}
-	private static double[][] genInputs(int n, double bound){
+	private static double[][] genInputsFunc(int n, double bound, DoubleUnaryOperator func){
+	    //generates evenly spaced x values and accompanying y values for input func
+		double realBound = bound/n;
 		Random rand = new Random();
+		double basis = 0;
 		double[][] arr = new double[2][n];
-		for(int i = 0; i < arr[0].length; i++) {
-			arr[0][i] = rand.nextDouble(bound);
-			arr[1][i] = rand.nextDouble(bound);
+		arr[0][0] = rand.nextDouble();
+		arr[1][0] = rand.nextDouble();
+		double lastX = arr[0][0];
+		double lastY = arr[1][0];
+		for(int i = 1; i < arr[0].length; i++) {
+		    while(arr[0][i] <= lastX){
+			arr[0][i] = (rand.nextDouble()*realBound);
+			if(arr[0][i] < basis && arr[0][i]+basis<realBound) arr[0][i] += basis;
+		    }
+		    //while(arr[1][i] <= lastY){
+			arr[1][i] = func.applyAsDouble(arr[0][i]);
+		    //}	
+		        lastX = arr[0][i];
+			basis = realBound;
+			realBound+=bound/n;
+		}
+		return arr;
+	}
+	private static double[][] genInputs(int n, double bound){
+	    //generates evenly spaced x and y values such that our splines can smoothly interpolate the data points
+		double realBound = bound/n;
+		Random rand = new Random();
+		double basis = 0;
+		double[][] arr = new double[2][n];
+		arr[0][0] = rand.nextDouble();
+		arr[1][0] = rand.nextDouble();
+		double lastX = arr[0][0];
+		double lastY = arr[1][0];
+		for(int i = 1; i < arr[0].length; i++) {
+		    while(arr[0][i] <= lastX){
+			arr[0][i] = (rand.nextDouble()*realBound);
+			if(arr[0][i] < basis) arr[0][i] += basis;
+		    }
+		    while(arr[1][i] <= lastY){
+			arr[1][i] = (rand.nextDouble()*realBound);
+			if(arr[1][i] < basis) arr[1][i] += basis;
+		    }	lastX = arr[0][i];
+			lastY = arr[1][i];
+			basis = realBound;
+			realBound+=bound/n;
 		}
 		return arr;
 	}
